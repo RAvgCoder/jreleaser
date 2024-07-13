@@ -31,7 +31,7 @@ import static java.util.stream.Collectors.toList;
  */
 @org.jreleaser.infra.nativeimage.annotations.NativeImage
 public final class ExtensionManagerHolder {
-    private static final ThreadLocal<ExtensionManager> EXTENSION_MANAGER_THREAD_LOCAL = ThreadLocal.withInitial(() -> {
+    private static final ThreadLocal<ExtensionManager> MANAGERS_THREAD = ThreadLocal.withInitial(() -> {
         List<ExtensionManager> extensionManagers = StreamSupport
             .stream(resolveServiceLoader().spliterator(), false)
             .collect(toList());
@@ -51,11 +51,11 @@ public final class ExtensionManagerHolder {
     }
 
     public static ExtensionManager get() {
-        return EXTENSION_MANAGER_THREAD_LOCAL.get();
+        return MANAGERS_THREAD.get();
     }
 
     public static void cleanup() {
-        EXTENSION_MANAGER_THREAD_LOCAL.remove();
+        MANAGERS_THREAD.remove();
     }
 
     private static ServiceLoader<ExtensionManager> resolveServiceLoader() {
