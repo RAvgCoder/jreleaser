@@ -53,13 +53,13 @@ public interface Nexus2MavenDeployer extends MavenDeployer {
         CLOSE,
         RELEASE;
 
-        public String formatted() {
-            return name().toLowerCase(Locale.ENGLISH);
-        }
-
         public static Stage of(String str) {
             if (isBlank(str)) return null;
             return Stage.valueOf(str.toUpperCase(Locale.ENGLISH).trim());
+        }
+
+        public String formatted() {
+            return name().toLowerCase(Locale.ENGLISH);
         }
     }
 
@@ -78,42 +78,51 @@ public interface Nexus2MavenDeployer extends MavenDeployer {
                 return FULL_DEPLOYMENT;
             }
 
-            if (Stage.UPLOAD == start) {
-                if (null == end) return FULL_DEPLOYMENT;
-                switch (end) {
-                    case UPLOAD:
-                        return UPLOAD;
-                    case CLOSE:
-                        return UPLOAD_AND_CLOSE;
-                    case RELEASE:
-                        return FULL_DEPLOYMENT;
-                }
-            }
+            final String errorNexusStage = RB.$("ERROR_nexus_stage", start, end);
 
-            if (Stage.CLOSE == start) {
-                if (null == end) return CLOSE_AND_RELEASE;
-                switch (end) {
-                    case UPLOAD:
-                        throw new IllegalArgumentException(RB.$("ERROR_nexus_stage", start, end));
-                    case CLOSE:
-                        return CLOSE;
-                    case RELEASE:
-                        return CLOSE_AND_RELEASE;
-                }
+            switch (start) {
+                case UPLOAD:
+                    return determineOperationForUpload(end);
+                case CLOSE:
+                    return determineOperationForClose(end, errorNexusStage);
+                case RELEASE:
+                    return determineOperationForRelease(end, errorNexusStage);
+                default:
+                    return FULL_DEPLOYMENT;
             }
+        }
 
-            if (Stage.RELEASE == start) {
-                if (null == end) return RELEASE;
-                switch (end) {
-                    case UPLOAD:
-                    case CLOSE:
-                        throw new IllegalArgumentException(RB.$("ERROR_nexus_stage", start, end));
-                    case RELEASE:
-                        return RELEASE;
-                }
+        private static StageOperation determineOperationForRelease(Stage end, String errorNexusStage) {
+            if (null == end || end == Stage.RELEASE) return RELEASE;
+            else throw new IllegalArgumentException(errorNexusStage);
+        }
+
+        private static StageOperation determineOperationForClose(Stage end, String err_msg) {
+            if (null == end) return CLOSE_AND_RELEASE;
+            switch (end) {
+                case UPLOAD:
+                    throw new IllegalArgumentException(err_msg);
+                case CLOSE:
+                    return CLOSE;
+                case RELEASE:
+                    return CLOSE_AND_RELEASE;
+                default:
+                    throw new IllegalStateException("No impl for end " + end);
             }
+        }
 
-            return FULL_DEPLOYMENT;
+        private static StageOperation determineOperationForUpload(Stage end) {
+            if (null == end) return FULL_DEPLOYMENT;
+            switch (end) {
+                case UPLOAD:
+                    return UPLOAD;
+                case CLOSE:
+                    return UPLOAD_AND_CLOSE;
+                case RELEASE:
+                    return FULL_DEPLOYMENT;
+                default:
+                    throw new IllegalStateException("No impl for end " + end);
+            }
         }
     }
 }
