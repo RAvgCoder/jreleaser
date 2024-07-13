@@ -162,19 +162,19 @@ public class CalVer implements Version<CalVer> {
         int i = 1;
         Map<String, String> elements = new LinkedHashMap<>();
         elements.put(T_YEAR, matcher.group(i++));
-        if (isNotBlank(result.w)) {
+        if (isNotBlank(result.week)) {
             elements.put(T_WEEK, matcher.group(i++));
         }
-        if (isNotBlank(result.m)) {
+        if (isNotBlank(result.month)) {
             elements.put(T_MONTH, matcher.group(i++));
         }
-        if (isNotBlank(result.d)) {
+        if (isNotBlank(result.day)) {
             elements.put(T_DAY, matcher.group(i++));
         }
-        if (isNotBlank(result.n)) {
+        if (isNotBlank(result.minor)) {
             elements.put(T_MINOR, matcher.group(i++));
         }
-        if (isNotBlank(result.r)) {
+        if (isNotBlank(result.micro)) {
             elements.put(T_MICRO, matcher.group(i++));
         }
         if (i <= matcher.groupCount()) {
@@ -417,13 +417,13 @@ public class CalVer implements Version<CalVer> {
     static class TokenizationResult {
         List<String> tokens;
         String f;
-        String y = null;
-        String m = null;
-        String w = null;
-        String d = null;
-        String n = null;
-        String r = null;
-        String o = null;
+        String year = null;
+        String month = null;
+        String week = null;
+        String day = null;
+        String minor = null;
+        String micro = null;
+        String modifier = null;
         private Tuple s;
         private int i = 0;
 
@@ -440,10 +440,10 @@ public class CalVer implements Version<CalVer> {
             if (binarySearch(YEARS, result.s.token) < 0) {
                 throw new IllegalArgumentException(RB.$("ERROR_calver_year", result.f));
             }
-            result.y = result.s.token;
-            result.tokens.add(result.y);
+            result.year = result.s.token;
+            result.tokens.add(result.year);
             if (isNotBlank(result.s.sep)) result.tokens.add(result.s.sep);
-            result.i = result.y.length() + 1;
+            result.i = result.year.length() + 1;
 
             result.s = take(result.f, result.i, delims);
             if (binarySearch(MONTHS, result.s.token) >= 0) {
@@ -459,8 +459,8 @@ public class CalVer implements Version<CalVer> {
                     extractNumbers(microResult, result);
                 }
                 result.s = take(result.f, result.i, emptyList());
-                result.o = result.s.token;
-                if (isNotBlank(result.o)) result.tokens.add(result.o);
+                result.modifier = result.s.token;
+                if (isNotBlank(result.modifier)) result.tokens.add(result.modifier);
             }
 
             if (result.tokens.get(result.tokens.size() - 1).endsWith(T_MODIFIER_OP2)) {
@@ -484,8 +484,8 @@ public class CalVer implements Version<CalVer> {
             }
             result.tokens.add(result.s.token);
             if (isNotBlank(result.s.sep)) result.tokens.add(result.s.sep);
-            result.r = result.s.token;
-            result.i += result.r.length() + 1;
+            result.micro = result.s.token;
+            result.i += result.micro.length() + 1;
         }
 
         // [done, micro]
@@ -497,14 +497,14 @@ public class CalVer implements Version<CalVer> {
                 if (isNotBlank(result.s.sep)) result.tokens.add(result.s.sep);
                 result.i += result.s.token.length() + 1;
                 micro = T_MICRO.equals(result.s.token);
-                result.n = !micro ? result.s.token : null;
-                result.r = micro ? result.s.token : null;
+                result.minor = !micro ? result.s.token : null;
+                result.micro = micro ? result.s.token : null;
                 result.s = take(result.f, result.i, delims);
                 done = isBlank(result.s.token);
             } else {
                 result.s = take(result.f, result.i, emptyList());
-                result.o = result.s.token;
-                if (isNotBlank(result.o)) result.tokens.add(result.o);
+                result.modifier = result.s.token;
+                if (isNotBlank(result.modifier)) result.tokens.add(result.modifier);
                 done = true;
             }
             return new MicroResult(micro, done);
@@ -518,10 +518,10 @@ public class CalVer implements Version<CalVer> {
             if (result.f.contains(T_DAY_ZERO) || result.f.contains(T_DAY_SHORT)) {
                 throw new IllegalArgumentException(RB.$("ERROR_calver_week_day", result.f));
             }
-            result.w = result.s.token;
-            result.tokens.add(result.w);
+            result.week = result.s.token;
+            result.tokens.add(result.week);
             if (isNotBlank(result.s.sep)) result.tokens.add(result.s.sep);
-            result.i += result.w.length() + 1;
+            result.i += result.week.length() + 1;
 
             result.s = take(result.f, result.i, delims);
         }
@@ -531,17 +531,17 @@ public class CalVer implements Version<CalVer> {
             if (result.f.contains(T_WEEK_ZERO) || result.f.contains(T_WEEK_SHORT)) {
                 throw new IllegalArgumentException(RB.$("ERROR_calver_month", result.f));
             }
-            result.m = result.s.token;
-            result.tokens.add(result.m);
+            result.month = result.s.token;
+            result.tokens.add(result.month);
             if (isNotBlank(result.s.sep)) result.tokens.add(result.s.sep);
-            result.i += result.m.length() + 1;
+            result.i += result.month.length() + 1;
 
             result.s = take(result.f, result.i, delims);
             if (binarySearch(DAYS, result.s.token) >= 0) {
-                result.d = result.s.token;
-                result.tokens.add(result.d);
+                result.day = result.s.token;
+                result.tokens.add(result.day);
                 if (isNotBlank(result.s.sep)) result.tokens.add(result.s.sep);
-                result.i += result.d.length() + 1;
+                result.i += result.day.length() + 1;
                 result.s = take(result.f, result.i, delims);
             }
         }
