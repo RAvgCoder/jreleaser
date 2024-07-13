@@ -131,6 +131,96 @@ public class CalVer implements Version<CalVer> {
         }
     }
 
+    private static int parseInt(String str) {
+        if ("0".equals(str)) return 0;
+        if (str.startsWith("0")) {
+            return Integer.parseInt(str.substring(1));
+        }
+        return Integer.parseInt(str);
+    }
+
+    public static CalVer of(String format, String version) {
+        requireNonBlank(format, "Argument 'format' must not be blank");
+        requireNonBlank(version, "Argument 'version' must not be blank");
+
+        TokenizationResult result = TokenizationResult.tokenize(format);
+
+        Pattern pattern = Pattern.compile("^" + result.tokens.stream()
+            .map(t -> PATTERNS.getOrDefault(t, t))
+            .collect(Collectors.joining("")) + "$");
+
+        Matcher matcher = pattern.matcher(version.trim());
+
+        if (matcher.matches()) {
+            return extractCalVer(format, matcher, result);
+        }
+
+        throw new IllegalArgumentException(RB.$("ERROR_version_parse_with", version, result.f));
+    }
+
+    private static CalVer extractCalVer(String format, Matcher matcher, TokenizationResult result) {
+        int i = 1;
+        Map<String, String> elements = new LinkedHashMap<>();
+        elements.put(T_YEAR, matcher.group(i++));
+        if (isNotBlank(result.w)) {
+            elements.put(T_WEEK, matcher.group(i++));
+        }
+        if (isNotBlank(result.m)) {
+            elements.put(T_MONTH, matcher.group(i++));
+        }
+        if (isNotBlank(result.d)) {
+            elements.put(T_DAY, matcher.group(i++));
+        }
+        if (isNotBlank(result.n)) {
+            elements.put(T_MINOR, matcher.group(i++));
+        }
+        if (isNotBlank(result.r)) {
+            elements.put(T_MICRO, matcher.group(i++));
+        }
+        if (i <= matcher.groupCount()) {
+            elements.put(T_MODIFIER, matcher.group(matcher.groupCount()));
+        }
+
+        return new CalVer(format, elements);
+    }
+
+
+    public static CalVer defaultOf(String format) {
+        requireNonBlank(format, "Argument 'format' must not be blank");
+
+        return of(format, format.replace(T_YEAR_LONG, "2000")
+            .replace(T_YEAR_SHORT, "0")
+            .replace(T_YEAR_ZERO, "0")
+            .replace(T_MONTH_SHORT, "1")
+            .replace(T_MONTH_ZERO, "01")
+            .replace(T_WEEK_SHORT, "1")
+            .replace(T_WEEK_ZERO, "01")
+            .replace(T_DAY_SHORT, "1")
+            .replace(T_DAY_ZERO, "01")
+            .replace(T_MINOR, "0")
+            .replace(T_MICRO, "0")
+            .replace(T_MODIFIER, "A")
+            .replace("[", "")
+            .replace("]", ""));
+    }
+
+    private static Tuple take(String str, int index, List<Character> delims) {
+        StringBuilder b = new StringBuilder();
+
+        for (int i = index; i < str.length(); i++) {
+            char c = str.charAt(i);
+            if (delims.contains(c)) {
+                if (c == '[' && str.length() > i + 1) {
+                    c = str.charAt(i + 1);
+                }
+                return new Tuple(b.toString(), c);
+            }
+            b.append(c);
+        }
+
+        return new Tuple(b.toString(), (char) 0);
+    }
+
     public boolean hasYear() {
         return isNotBlank(year);
     }
@@ -307,195 +397,6 @@ public class CalVer implements Version<CalVer> {
         return pattern.equals(version.pattern);
     }
 
-    private static int parseInt(String str) {
-        if ("0".equals(str)) return 0;
-        if (str.startsWith("0")) {
-            return Integer.parseInt(str.substring(1));
-        }
-        return Integer.parseInt(str);
-    }
-
-    public static CalVer of(String format, String version) {
-        requireNonBlank(format, "Argument 'format' must not be blank");
-        requireNonBlank(version, "Argument 'version' must not be blank");
-
-        List<String> tokens = new ArrayList<>();
-
-        List<Character> delims = listOf('.', '_', '-', '[');
-        String f = format.trim();
-        String y = null;
-        String m = null;
-        String w = null;
-        String d = null;
-        String n = null;
-        String r = null;
-        String o = null;
-        int i = 0;
-
-        Tuple s = take(f, i, delims);
-        if (binarySearch(YEARS, s.token) < 0) {
-            throw new IllegalArgumentException(RB.$("ERROR_calver_year", f));
-        }
-        y = s.token;
-        tokens.add(y);
-        if (isNotBlank(s.sep)) tokens.add(s.sep);
-        i = y.length() + 1;
-
-        s = take(f, i, delims);
-        if (binarySearch(MONTHS, s.token) >= 0) {
-            // cannot have weeks
-            if (f.contains(T_WEEK_ZERO) || f.contains(T_WEEK_SHORT)) {
-                throw new IllegalArgumentException(RB.$("ERROR_calver_month", f));
-            }
-            m = s.token;
-            tokens.add(m);
-            if (isNotBlank(s.sep)) tokens.add(s.sep);
-            i += m.length() + 1;
-
-            s = take(f, i, delims);
-            if (binarySearch(DAYS, s.token) >= 0) {
-                d = s.token;
-                tokens.add(d);
-                if (isNotBlank(s.sep)) tokens.add(s.sep);
-                i += d.length() + 1;
-                s = take(f, i, delims);
-            }
-        } else if (binarySearch(WEEKS, s.token) >= 0) {
-            // cannot have months nor days
-            if (f.contains(T_MONTH_ZERO) || f.contains(T_MONTH_SHORT)) {
-                throw new IllegalArgumentException(RB.$("ERROR_calver_week_month", f));
-            }
-            if (f.contains(T_DAY_ZERO) || f.contains(T_DAY_SHORT)) {
-                throw new IllegalArgumentException(RB.$("ERROR_calver_week_day", f));
-            }
-            w = s.token;
-            tokens.add(w);
-            if (isNotBlank(s.sep)) tokens.add(s.sep);
-            i += w.length() + 1;
-
-            s = take(f, i, delims);
-        }
-
-        boolean micro = false;
-        boolean done = false;
-        if (binarySearch(NUMBERS, s.token) >= 0) {
-            tokens.add(s.token);
-            if (isNotBlank(s.sep)) tokens.add(s.sep);
-            i += s.token.length() + 1;
-            micro = T_MICRO.equals(s.token);
-            n = !micro ? s.token : null;
-            r = micro ? s.token : null;
-            s = take(f, i, delims);
-            done = isBlank(s.token);
-        } else {
-            s = take(f, i, emptyList());
-            o = s.token;
-            if (isNotBlank(o)) tokens.add(o);
-            done = true;
-        }
-
-        if (!done) {
-            if (binarySearch(NUMBERS, s.token) >= 0) {
-                if (micro) {
-                    if (T_MICRO.equals(s.token)) {
-                        throw new IllegalArgumentException(RB.$("ERROR_calver_micro_duplicate", f));
-                    } else {
-                        throw new IllegalArgumentException(RB.$("ERROR_calver_micro_minor", f));
-                    }
-                } else if (T_MINOR.equals(s.token)) {
-                    throw new IllegalArgumentException(RB.$("ERROR_calver_minor_duplicate", f));
-                }
-                tokens.add(s.token);
-                if (isNotBlank(s.sep)) tokens.add(s.sep);
-                r = s.token;
-                i += r.length() + 1;
-                s = take(f, i, emptyList());
-                o = s.token;
-                if (isNotBlank(o)) tokens.add(o);
-            } else {
-                s = take(f, i, emptyList());
-                o = s.token;
-                if (isNotBlank(o)) tokens.add(o);
-            }
-        }
-
-        if (tokens.get(tokens.size() - 1).endsWith(T_MODIFIER_OP2)) {
-            String sep = tokens.remove(tokens.size() - 2);
-            String mod = "(?:" + sep + PATTERNS.get(T_MODIFIER_OP);
-            tokens.set(tokens.size() - 1, mod);
-        }
-
-        Pattern pattern = Pattern.compile("^" + tokens.stream()
-            .map(t -> PATTERNS.getOrDefault(t, t))
-            .collect(Collectors.joining("")) + "$");
-
-        Matcher matcher = pattern.matcher(version.trim());
-
-        if (matcher.matches()) {
-            i = 1;
-            Map<String, String> elements = new LinkedHashMap<>();
-            elements.put(T_YEAR, matcher.group(i++));
-            if (isNotBlank(w)) {
-                elements.put(T_WEEK, matcher.group(i++));
-            }
-            if (isNotBlank(m)) {
-                elements.put(T_MONTH, matcher.group(i++));
-            }
-            if (isNotBlank(d)) {
-                elements.put(T_DAY, matcher.group(i++));
-            }
-            if (isNotBlank(n)) {
-                elements.put(T_MINOR, matcher.group(i++));
-            }
-            if (isNotBlank(r)) {
-                elements.put(T_MICRO, matcher.group(i++));
-            }
-            if (i <= matcher.groupCount()) {
-                elements.put(T_MODIFIER, matcher.group(matcher.groupCount()));
-            }
-
-            return new CalVer(format, elements);
-        }
-
-        throw new IllegalArgumentException(RB.$("ERROR_version_parse_with", version, f));
-    }
-
-    public static CalVer defaultOf(String format) {
-        requireNonBlank(format, "Argument 'format' must not be blank");
-
-        return of(format, format.replace(T_YEAR_LONG, "2000")
-            .replace(T_YEAR_SHORT, "0")
-            .replace(T_YEAR_ZERO, "0")
-            .replace(T_MONTH_SHORT, "1")
-            .replace(T_MONTH_ZERO, "01")
-            .replace(T_WEEK_SHORT, "1")
-            .replace(T_WEEK_ZERO, "01")
-            .replace(T_DAY_SHORT, "1")
-            .replace(T_DAY_ZERO, "01")
-            .replace(T_MINOR, "0")
-            .replace(T_MICRO, "0")
-            .replace(T_MODIFIER, "A")
-            .replace("[", "")
-            .replace("]", ""));
-    }
-
-    private static Tuple take(String str, int index, List<Character> delims) {
-        StringBuilder b = new StringBuilder();
-
-        for (int i = index; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (delims.contains(c)) {
-                if (c == '[' && str.length() > i + 1) {
-                    c = str.charAt(i + 1);
-                }
-                return new Tuple(b.toString(), c);
-            }
-            b.append(c);
-        }
-
-        return new Tuple(b.toString(), (char) 0);
-    }
-
     private static class Tuple {
         private final String token;
         private final String sep;
@@ -511,5 +412,149 @@ public class CalVer implements Version<CalVer> {
             }
             return String.valueOf(sep);
         }
+    }
+
+    static class TokenizationResult {
+        List<String> tokens;
+        String f;
+        String y = null;
+        String m = null;
+        String w = null;
+        String d = null;
+        String n = null;
+        String r = null;
+        String o = null;
+        private Tuple s;
+        private int i = 0;
+
+        public TokenizationResult(String format, List<Character> delims) {
+            this.tokens = new ArrayList<>();
+            this.f = format;
+            this.s = take(this.f, this.i, delims);
+        }
+
+        public static TokenizationResult tokenize(String format) {
+            List<Character> delims = listOf('.', '_', '-', '[');
+            TokenizationResult result = new TokenizationResult(format.trim(), delims);
+
+            if (binarySearch(YEARS, result.s.token) < 0) {
+                throw new IllegalArgumentException(RB.$("ERROR_calver_year", result.f));
+            }
+            result.y = result.s.token;
+            result.tokens.add(result.y);
+            if (isNotBlank(result.s.sep)) result.tokens.add(result.s.sep);
+            result.i = result.y.length() + 1;
+
+            result.s = take(result.f, result.i, delims);
+            if (binarySearch(MONTHS, result.s.token) >= 0) {
+                extractMonth(result, delims);
+            } else if (binarySearch(WEEKS, result.s.token) >= 0) {
+                extractWeeks(result, delims);
+            }
+
+            MicroResult microResult = extractMicro(result, delims);
+
+            if (!microResult.done) {
+                if (binarySearch(NUMBERS, result.s.token) >= 0) {
+                    extractNumbers(microResult, result);
+                }
+                result.s = take(result.f, result.i, emptyList());
+                result.o = result.s.token;
+                if (isNotBlank(result.o)) result.tokens.add(result.o);
+            }
+
+            if (result.tokens.get(result.tokens.size() - 1).endsWith(T_MODIFIER_OP2)) {
+                String sep = result.tokens.remove(result.tokens.size() - 2);
+                String mod = "(?:" + sep + PATTERNS.get(T_MODIFIER_OP);
+                result.tokens.set(result.tokens.size() - 1, mod);
+            }
+
+            return result;
+        }
+
+        private static void extractNumbers(MicroResult microResult, TokenizationResult result) {
+            if (microResult.micro) {
+                if (T_MICRO.equals(result.s.token)) {
+                    throw new IllegalArgumentException(RB.$("ERROR_calver_micro_duplicate", result.f));
+                } else {
+                    throw new IllegalArgumentException(RB.$("ERROR_calver_micro_minor", result.f));
+                }
+            } else if (T_MINOR.equals(result.s.token)) {
+                throw new IllegalArgumentException(RB.$("ERROR_calver_minor_duplicate", result.f));
+            }
+            result.tokens.add(result.s.token);
+            if (isNotBlank(result.s.sep)) result.tokens.add(result.s.sep);
+            result.r = result.s.token;
+            result.i += result.r.length() + 1;
+        }
+
+        // [done, micro]
+        private static MicroResult extractMicro(TokenizationResult result, List<Character> delims) {
+            boolean done;
+            boolean micro = false;
+            if (binarySearch(NUMBERS, result.s.token) >= 0) {
+                result.tokens.add(result.s.token);
+                if (isNotBlank(result.s.sep)) result.tokens.add(result.s.sep);
+                result.i += result.s.token.length() + 1;
+                micro = T_MICRO.equals(result.s.token);
+                result.n = !micro ? result.s.token : null;
+                result.r = micro ? result.s.token : null;
+                result.s = take(result.f, result.i, delims);
+                done = isBlank(result.s.token);
+            } else {
+                result.s = take(result.f, result.i, emptyList());
+                result.o = result.s.token;
+                if (isNotBlank(result.o)) result.tokens.add(result.o);
+                done = true;
+            }
+            return new MicroResult(micro, done);
+        }
+
+        private static void extractWeeks(TokenizationResult result, List<Character> delims) {
+            // cannot have months nor days
+            if (result.f.contains(T_MONTH_ZERO) || result.f.contains(T_MONTH_SHORT)) {
+                throw new IllegalArgumentException(RB.$("ERROR_calver_week_month", result.f));
+            }
+            if (result.f.contains(T_DAY_ZERO) || result.f.contains(T_DAY_SHORT)) {
+                throw new IllegalArgumentException(RB.$("ERROR_calver_week_day", result.f));
+            }
+            result.w = result.s.token;
+            result.tokens.add(result.w);
+            if (isNotBlank(result.s.sep)) result.tokens.add(result.s.sep);
+            result.i += result.w.length() + 1;
+
+            result.s = take(result.f, result.i, delims);
+        }
+
+        private static void extractMonth(TokenizationResult result, List<Character> delims) {
+            // cannot have weeks
+            if (result.f.contains(T_WEEK_ZERO) || result.f.contains(T_WEEK_SHORT)) {
+                throw new IllegalArgumentException(RB.$("ERROR_calver_month", result.f));
+            }
+            result.m = result.s.token;
+            result.tokens.add(result.m);
+            if (isNotBlank(result.s.sep)) result.tokens.add(result.s.sep);
+            result.i += result.m.length() + 1;
+
+            result.s = take(result.f, result.i, delims);
+            if (binarySearch(DAYS, result.s.token) >= 0) {
+                result.d = result.s.token;
+                result.tokens.add(result.d);
+                if (isNotBlank(result.s.sep)) result.tokens.add(result.s.sep);
+                result.i += result.d.length() + 1;
+                result.s = take(result.f, result.i, delims);
+            }
+        }
+
+        static class MicroResult {
+            boolean micro;
+            boolean done;
+
+            public MicroResult(boolean micro, boolean done) {
+                this.micro = micro;
+                this.done = done;
+            }
+        }
+
     }
 }
