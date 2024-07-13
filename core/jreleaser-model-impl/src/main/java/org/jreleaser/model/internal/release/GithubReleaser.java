@@ -18,7 +18,6 @@
 package org.jreleaser.model.internal.release;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.jreleaser.model.Active;
 import org.jreleaser.model.internal.common.AbstractModelObject;
 import org.jreleaser.model.internal.common.Domain;
 import org.jreleaser.model.internal.common.EnabledAware;
@@ -35,254 +34,11 @@ import static java.util.Collections.unmodifiableMap;
 public final class GithubReleaser extends BaseReleaser<org.jreleaser.model.api.release.GithubReleaser, GithubReleaser> {
     private static final long serialVersionUID = -7946819245345601709L;
     private final ReleaseNotes releaseNotes = new ReleaseNotes();
-
+    @JsonIgnore
+    private final ImmutableGitView immutable;
     private Boolean draft;
     private String discussionCategoryName;
 
-    @JsonIgnore
-    private final org.jreleaser.model.api.release.GithubReleaser immutable = new org.jreleaser.model.api.release.GithubReleaser() {
-        private static final long serialVersionUID = -4561765054201402112L;
-
-        @Override
-        public boolean isPrerelease() {
-            return GithubReleaser.this.isPrerelease();
-        }
-
-        @Override
-        public boolean isDraft() {
-            return GithubReleaser.this.isDraft();
-        }
-
-        @Override
-        public String getDiscussionCategoryName() {
-            return discussionCategoryName;
-        }
-
-        @Override
-        public ReleaseNotes getReleaseNotes() {
-            return releaseNotes.asImmutable();
-        }
-
-        @Override
-        public String getServiceName() {
-            return GithubReleaser.this.getServiceName();
-        }
-
-        @Override
-        public boolean isReleaseSupported() {
-            return GithubReleaser.this.isReleaseSupported();
-        }
-
-        @Override
-        public String getCanonicalRepoName() {
-            return GithubReleaser.this.getCanonicalRepoName();
-        }
-
-        @Override
-        public String getReverseRepoHost() {
-            return GithubReleaser.this.getReverseRepoHost();
-        }
-
-        @Override
-        public boolean isMatch() {
-            return GithubReleaser.this.isMatch();
-        }
-
-        @Override
-        public String getHost() {
-            return GithubReleaser.this.getHost();
-        }
-
-        @Override
-        public String getName() {
-            return GithubReleaser.this.getName();
-        }
-
-        @Override
-        public String getRepoUrl() {
-            return GithubReleaser.this.getRepoUrl();
-        }
-
-        @Override
-        public String getRepoCloneUrl() {
-            return GithubReleaser.this.getRepoCloneUrl();
-        }
-
-        @Override
-        public String getCommitUrl() {
-            return GithubReleaser.this.getCommitUrl();
-        }
-
-        @Override
-        public String getSrcUrl() {
-            return GithubReleaser.this.getSrcUrl();
-        }
-
-        @Override
-        public String getDownloadUrl() {
-            return GithubReleaser.this.getDownloadUrl();
-        }
-
-        @Override
-        public String getReleaseNotesUrl() {
-            return GithubReleaser.this.getReleaseNotesUrl();
-        }
-
-        @Override
-        public String getLatestReleaseUrl() {
-            return GithubReleaser.this.getLatestReleaseUrl();
-        }
-
-        @Override
-        public String getIssueTrackerUrl() {
-            return GithubReleaser.this.getIssueTrackerUrl();
-        }
-
-        @Override
-        public String getUsername() {
-            return GithubReleaser.this.getUsername();
-        }
-
-        @Override
-        public String getToken() {
-            return GithubReleaser.this.getToken();
-        }
-
-        @Override
-        public String getTagName() {
-            return GithubReleaser.this.getTagName();
-        }
-
-        @Override
-        public String getPreviousTagName() {
-            return GithubReleaser.this.getPreviousTagName();
-        }
-
-        @Override
-        public String getReleaseName() {
-            return GithubReleaser.this.getReleaseName();
-        }
-
-        @Override
-        public String getBranch() {
-            return GithubReleaser.this.getBranch();
-        }
-
-        @Override
-        public String getBranchPush() {
-            return GithubReleaser.this.getBranchPush();
-        }
-
-        @Override
-        public Prerelease getPrerelease() {
-            return GithubReleaser.this.getPrerelease().asImmutable();
-        }
-
-        @Override
-        public boolean isSign() {
-            return GithubReleaser.this.isSign();
-        }
-
-        @Override
-        public org.jreleaser.model.api.release.Changelog getChangelog() {
-            return GithubReleaser.this.getChangelog().asImmutable();
-        }
-
-        @Override
-        public Milestone getMilestone() {
-            return GithubReleaser.this.getMilestone().asImmutable();
-        }
-
-        @Override
-        public Issues getIssues() {
-            return GithubReleaser.this.getIssues().asImmutable();
-        }
-
-        @Override
-        public boolean isSkipTag() {
-            return GithubReleaser.this.isSkipTag();
-        }
-
-        @Override
-        public boolean isSkipRelease() {
-            return GithubReleaser.this.isSkipRelease();
-        }
-
-        @Override
-        public boolean isOverwrite() {
-            return GithubReleaser.this.isOverwrite();
-        }
-
-        @Override
-        public Update getUpdate() {
-            return GithubReleaser.this.getUpdate().asImmutable();
-        }
-
-        @Override
-        public String getApiEndpoint() {
-            return GithubReleaser.this.getApiEndpoint();
-        }
-
-        @Override
-        public boolean isArtifacts() {
-            return GithubReleaser.this.isArtifacts();
-        }
-
-        @Override
-        public boolean isFiles() {
-            return GithubReleaser.this.isFiles();
-        }
-
-        @Override
-        public boolean isChecksums() {
-            return GithubReleaser.this.isChecksums();
-        }
-
-        @Override
-        public boolean isCatalogs() {
-            return GithubReleaser.this.isCatalogs();
-        }
-
-        @Override
-        public boolean isSignatures() {
-            return GithubReleaser.this.isSignatures();
-        }
-
-        @Override
-        public Active getUploadAssets() {
-            return GithubReleaser.this.getUploadAssets();
-        }
-
-        @Override
-        public org.jreleaser.model.api.common.CommitAuthor getCommitAuthor() {
-            return GithubReleaser.this.getCommitAuthor().asImmutable();
-        }
-
-        @Override
-        public Map<String, Object> asMap(boolean full) {
-            return unmodifiableMap(GithubReleaser.this.asMap(full));
-        }
-
-        @Override
-        public boolean isEnabled() {
-            return GithubReleaser.this.isEnabled();
-        }
-
-        @Override
-        public String getOwner() {
-            return GithubReleaser.this.getOwner();
-        }
-
-        @Override
-        public Integer getConnectTimeout() {
-            return GithubReleaser.this.getConnectTimeout();
-        }
-
-        @Override
-        public Integer getReadTimeout() {
-            return GithubReleaser.this.getReadTimeout();
-        }
-    };
 
     public GithubReleaser() {
         super(org.jreleaser.model.api.release.GithubReleaser.TYPE, true);
@@ -296,10 +52,12 @@ public final class GithubReleaser extends BaseReleaser<org.jreleaser.model.api.r
         setReleaseNotesUrl("https://{{repoHost}}/{{repoOwner}}/{{repoName}}/releases/tag/{{tagName}}");
         setLatestReleaseUrl("https://{{repoHost}}/{{repoOwner}}/{{repoName}}/releases/latest");
         setIssueTrackerUrl("https://{{repoHost}}/{{repoOwner}}/{{repoName}}/issues");
+
+        immutable = new ImmutableGitView(this);
     }
 
     @Override
-    public org.jreleaser.model.api.release.GithubReleaser asImmutable() {
+    public ImmutableGitView asImmutable() {
         return immutable;
     }
 
@@ -351,73 +109,5 @@ public final class GithubReleaser extends BaseReleaser<org.jreleaser.model.api.r
         map.put("discussionCategoryName", discussionCategoryName);
         map.put("releaseNotes", releaseNotes.asMap(full));
         return map;
-    }
-
-    public static final class ReleaseNotes extends AbstractModelObject<ReleaseNotes> implements Domain, EnabledAware {
-        private static final long serialVersionUID = -1029998017479730113L;
-
-        private Boolean enabled;
-        private String configurationFile;
-
-        @JsonIgnore
-        private final org.jreleaser.model.api.release.GithubReleaser.ReleaseNotes immutable = new org.jreleaser.model.api.release.GithubReleaser.ReleaseNotes() {
-            private static final long serialVersionUID = -301461478911447433L;
-
-            @Override
-            public String getConfigurationFile() {
-                return configurationFile;
-            }
-
-            @Override
-            public Map<String, Object> asMap(boolean full) {
-                return unmodifiableMap(ReleaseNotes.this.asMap(full));
-            }
-
-            @Override
-            public boolean isEnabled() {
-                return ReleaseNotes.this.isEnabled();
-            }
-        };
-
-        public org.jreleaser.model.api.release.GithubReleaser.ReleaseNotes asImmutable() {
-            return immutable;
-        }
-
-        @Override
-        public void merge(ReleaseNotes source) {
-            this.enabled = merge(this.enabled, source.enabled);
-            this.configurationFile = merge(this.configurationFile, source.configurationFile);
-        }
-
-        @Override
-        public boolean isEnabled() {
-            return null != enabled && enabled;
-        }
-
-        @Override
-        public void setEnabled(Boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        @Override
-        public boolean isEnabledSet() {
-            return null != enabled;
-        }
-
-        public String getConfigurationFile() {
-            return configurationFile;
-        }
-
-        public void setConfigurationFile(String configurationFile) {
-            this.configurationFile = configurationFile;
-        }
-
-        @Override
-        public Map<String, Object> asMap(boolean full) {
-            Map<String, Object> map = new LinkedHashMap<>();
-            map.put("enabled", isEnabled());
-            map.put("configurationFile", configurationFile);
-            return map;
-        }
     }
 }
