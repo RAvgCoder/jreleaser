@@ -98,7 +98,8 @@ class GithubReleaserImpl extends BaseReleaserImpl implements GithubReleaser {
         toModel(service)
         if (draft.present) service.draft = draft.get()
         service.prerelease = prerelease.toModel()
-        service.releaseNotes = releaseNotes.toModel()
+        service.setReleaseNotes(releaseNotes.toModel() as org.jreleaser.model.internal.release.ReleaseNotes);
+//        service.releaseNotes = releaseNotes.toModel()
         if (discussionCategoryName.present) service.discussionCategoryName = discussionCategoryName.get()
         service.changelog = changelog.toModel()
         if (milestone.isSet()) service.milestone = milestone.toModel()
@@ -123,8 +124,8 @@ class GithubReleaserImpl extends BaseReleaserImpl implements GithubReleaser {
                 configurationFile.present
         }
 
-        org.jreleaser.model.internal.release.GithubReleaser.ReleaseNotes toModel() {
-            org.jreleaser.model.internal.release.GithubReleaser.ReleaseNotes releaseNotes = new org.jreleaser.model.internal.release.GithubReleaser.ReleaseNotes()
+        org.jreleaser.model.internal.release.ReleaseNotes toModel() {
+            org.jreleaser.model.internal.release.ReleaseNotes releaseNotes = new org.jreleaser.model.internal.release.ReleaseNotes()
             if (enabled.present) releaseNotes.enabled = enabled.get()
             if (configurationFile.present) releaseNotes.configurationFile = configurationFile.get()
             releaseNotes
