@@ -32,7 +32,7 @@ import java.util.Set;
  * @author Andres Almiray
  * @since 0.1.0
  */
-public interface Releaser extends Domain, EnabledAware, CommitAuthorAware, OwnerAware, TimeoutAware, Active.Prereleaseable {
+public interface Releaser extends Domain, EnabledAware, CommitAuthorAware, OwnerAware, TimeoutAware, Active.Prereleaseable, ServiceInformation, ReleaseConfiguration, UrlProvider, ConfigurationFlags, NestedConfigurations {
     String KEY_SKIP_RELEASE = "skipRelease";
     String KEY_SKIP_RELEASE_SIGNATURES = "skipReleaseSignatures";
     String TAG_NAME = "TAG_NAME";
@@ -48,81 +48,16 @@ public interface Releaser extends Domain, EnabledAware, CommitAuthorAware, Owner
     String PRERELEASE_PATTERN = "PRERELEASE_PATTERN";
     String MILESTONE_NAME = "MILESTONE_NAME";
 
-    String getServiceName();
-
     boolean isReleaseSupported();
 
-    String getCanonicalRepoName();
-
-    String getReverseRepoHost();
-
     boolean isMatch();
-
-    String getHost();
-
-    String getName();
-
-    String getRepoUrl();
-
-    String getRepoCloneUrl();
-
-    String getCommitUrl();
-
-    String getSrcUrl();
-
-    String getDownloadUrl();
-
-    String getReleaseNotesUrl();
-
-    String getLatestReleaseUrl();
-
-    String getIssueTrackerUrl();
 
     String getUsername();
 
     String getToken();
 
-    String getTagName();
-
-    String getPreviousTagName();
-
-    String getReleaseName();
-
-    String getBranch();
-
-    String getBranchPush();
-
-    Prerelease getPrerelease();
-
-    boolean isSign();
-
-    Changelog getChangelog();
-
-    Milestone getMilestone();
-
-    Issues getIssues();
-
-    boolean isSkipTag();
-
-    boolean isSkipRelease();
-
-    boolean isOverwrite();
-
-    Update getUpdate();
-
-    String getApiEndpoint();
-
-    boolean isArtifacts();
-
-    boolean isFiles();
-
-    boolean isChecksums();
-
-    boolean isCatalogs();
-
-    boolean isSignatures();
-
     Active getUploadAssets();
+
 
     interface Update extends Domain, EnabledAware {
         Set<UpdateSection> getSections();
@@ -156,3 +91,5 @@ public interface Releaser extends Domain, EnabledAware, CommitAuthorAware, Owner
         }
     }
 }
+
+
