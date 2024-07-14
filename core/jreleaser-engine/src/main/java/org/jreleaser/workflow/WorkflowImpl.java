@@ -67,10 +67,6 @@ class WorkflowImpl implements Workflow {
 
     private void doExecute() {
         ExecutionContext executionContext = new ExecutionContext();
-//        RuntimeException stepException = null;
-//        Throwable listenerException = null;
-//        Throwable startSessionException = null;
-//        Throwable endSessionException = null;
 
         Instant start = Instant.now();
 
